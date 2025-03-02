@@ -18,7 +18,14 @@ import {
     RemoveFormattingIcon,
     ChevronDownIcon,
     HighlighterIcon,
-    Link2Icon
+    Link2Icon,
+    ImageIcon,
+    UploadIcon,
+    SearchIcon,
+    AlignLeftIcon,
+    AlignCenterIcon,
+    AlignRightIcon,
+    AlignJustifyIcon
 } from "lucide-react";
 
 import { 
@@ -28,10 +35,134 @@ import {
     DropdownMenuTrigger,
  } from "../../../components/ui/dropdown-menu";
 
+ import { 
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogFooter,
+    DialogTitle,
+ } from "@/components/ui/dialog";
+
  import { type Level } from "@tiptap/extension-heading";
  import { type ColorResult, SketchPicker } from "react-color";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import TextAlign from "@tiptap/extension-text-align";
+
+
+const AlignButton = () => {
+    const { editor } = useEditorStore();
+
+    const alignments = [
+        { label: "Left", value: "left", icon: AlignLeftIcon },
+        { label: "Center", value: "center", icon: AlignCenterIcon },
+        { label: "Right", value: "right", icon: AlignRightIcon },
+        { label: "Justify", value: "justify", icon: AlignJustifyIcon },
+    ]
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <button className="h-7 min-w-7 shrink-0 flex flex-col items-center justify-center rounded-sm hover:bg-neutral-200/80 px-1.5 overflow-hidden text-sm">
+                    <AlignLeftIcon className=" size-4"/>
+                </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="p-1 flex flex-col gap-y-1">
+                {alignments.map(({ label, value, icon: Icon }) => (
+                    <button
+                        key={value}
+                        onClick={() => editor?.chain().focus().setTextAlign(value).run()}
+                        className={cn(
+                            "flex items-center gap-x-2 px-2 py-1 rounded-sm hover:bg-neutral-200/80",
+                            editor?.isActive({textAlign: value}) && "bg-neutral-200/80"
+                        )}
+                    >
+                        <Icon className=" size-4"/>
+                        <span className=" text-sm">{label}</span>
+                    </button>
+                ))}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    )
+}
+
+
+const ImageButton = () => {
+    const { editor } = useEditorStore();
+    const [isDialogOpen, setDialogOpen] = useState(false);
+    const [imageUrl, setImgUrl] = useState("");
+
+    const onChange = (src:string) => {
+        editor?.chain().focus().setImage({src}).run();
+    };
+
+    const onUpload = () => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "image/*";
+
+        input.onchange = (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (file) {
+                const imgUrl = URL.createObjectURL(file);
+                onChange(imgUrl);
+            }
+        }
+
+        input.click();
+    };
+
+    const handleImageUrlSubmit = () => {
+        if (imageUrl) {
+            onChange(imageUrl);
+            setImgUrl("");
+            setDialogOpen(false);
+        }
+    };
+
+    return (
+        <>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <button className="h-7 min-w-7 shrink-0 flex flex-col items-center justify-center rounded-sm hover:bg-neutral-200/80 px-1.5 overflow-hidden text-sm">
+                        <ImageIcon className=" size-4"/>
+                    </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                    <DropdownMenuItem onClick={onUpload}>
+                        <UploadIcon className=" size-4 mr-2"/>
+                        Upload
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setDialogOpen(true)}>
+                        <SearchIcon className=" size-4 mr-2"/>
+                        Paste image URL
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Paste image URL</DialogTitle>
+                    </DialogHeader>
+                    <Input
+                        placeholder="https://example.com/image.jpg"
+                        value={imageUrl}
+                        onChange={(e) => setImgUrl(e.target.value)}
+                        onKeyDown={(e) => {
+                            if(e.key === "Enter") {
+                                handleImageUrlSubmit();
+                            }
+                        }}
+                    />
+                    <DialogFooter>
+                        <Button onClick={handleImageUrlSubmit}>Apply</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
+    )
+ }
 
 
  const LinkButton = () => {
@@ -331,8 +462,8 @@ export const Toolbar = () => {
         <HighlightColorButton/>
         <Separator orientation="vertical" className="h-6 bg-neutral-300" />
         <LinkButton/>
-        {/* TODO: Image */}
-        {/* TODO: Align */}
+        <ImageButton/>
+        <AlignButton/>
         {/* TODO: Line height */}
         {/* TODO: List */}
         {sections[2].map((item) => (
